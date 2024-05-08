@@ -1,7 +1,7 @@
 import os
 import tempfile
 import shutil
-from flask import Flask, request
+from flask import Flask, request, jsonify
 import git
 import subprocess
 import requests
@@ -12,6 +12,9 @@ app = Flask(__name__)
 @app.route('/webhook', methods=['POST'])
 def webhook():
     data = request.json
+
+    if 'zen' in data:
+        return jsonify({'msg': 'ping通ってよかったね'}), 200
 
     with tempfile.TemporaryDirectory(prefix='auto-ai-review-') as temp_dir:
         repo = git.Repo.clone_from(data['repository']['clone_url'], temp_dir)
