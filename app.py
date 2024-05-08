@@ -18,9 +18,10 @@ def webhook():
         if 'zen' in data:
             return jsonify({'msg': 'ping通ってよかったね'}), 200
 
-        if event_type == 'push':
-            if 'after' not in data:
-                return jsonify({'error': "Missing 'after' key in request data."}), 400
+        if event_type == 'push' or (event_type == 'status' and data['state'] == 'failure'):
+            commit_sha = data.get('sha', data.get('commit', {}).get('sha', None))
+            if not commit_sha:
+                return jsonify({'error': "Missing 'sha' or 'commit.sha' key in request data."}), 400
 
             with tempfile.TemporaryDirectory(prefix='auto-ai-review-') as temp_dir:
                 repo = git.Repo.clone_from(data['repository']['clone_url'], temp_dir)
@@ -30,7 +31,6 @@ def webhook():
                 repo.git.checkout('main')
                 repo.git.reset('--hard', 'origin/main')
                 
-                commit_sha = data['after']
                 review_branch = 'auto-ai-review'
                 
                 if review_branch not in repo.branches:
