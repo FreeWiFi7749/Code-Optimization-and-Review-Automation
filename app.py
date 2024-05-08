@@ -11,46 +11,49 @@ app = Flask(__name__)
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    data = request.json
+    try:
+        data = request.json
 
-    if 'zen' in data:
-        return jsonify({'msg': 'ping通ってよかったね'}), 200
+        if 'zen' in data:
+            return jsonify({'msg': 'ping通ってよかったね'}), 200
 
-    with tempfile.TemporaryDirectory(prefix='auto-ai-review-') as temp_dir:
-        repo = git.Repo.clone_from(data['repository']['clone_url'], temp_dir)
-        origin = repo.remotes.origin
-        
-        origin.fetch()
-        repo.git.checkout('main')
-        repo.git.reset('--hard', 'origin/main')
-        
-        commit_sha = data['after']
-        review_branch = 'auto-ai-review'
-        
-        if review_branch not in repo.branches:
-            repo.git.branch(review_branch)
-        repo.git.checkout(review_branch)
-        
-        changed_files = [item.a_path for item in repo.index.diff(None)]
-        best_optimizations = {}
-
-        for file_path in changed_files:
-            full_path = os.path.join(temp_dir, file_path)
-            optimized_code = optimize_code_with_ai(full_path)
+        with tempfile.TemporaryDirectory(prefix='auto-ai-review-') as temp_dir:
+            repo = git.Repo.clone_from(data['repository']['clone_url'], temp_dir)
+            origin = repo.remotes.origin
             
-            with open(full_path, 'w') as file:
-                file.write(optimized_code)
+            origin.fetch()
+            repo.git.checkout('main')
+            repo.git.reset('--hard', 'origin/main')
             
-            result = subprocess.run(["pytest", full_path], capture_output=True, text=True)
-            if result.returncode == 0:
-                repo.git.add(file_path)
-                repo.git.commit('-m', f'Optimize {file_path}')
+            commit_sha = data['after']
+            review_branch = 'auto-ai-review'
+            
+            if review_branch not in repo.branches:
+                repo.git.branch(review_branch)
+            repo.git.checkout(review_branch)
+            
+            changed_files = [item.a_path for item in repo.index.diff(None)]
+            best_optimizations = {}
 
-        if best_optimizations:
-            origin.push(review_branch)
-            create_pull_request(os.getenv('GITHUB_TOKEN'), data['repository']['full_name'], 'Automated Pull Request for Code Optimization', 'This pull request contains automated code optimizations.', review_branch, 'main')
+            for file_path in changed_files:
+                full_path = os.path.join(temp_dir, file_path)
+                optimized_code = optimize_code_with_ai(full_path)
+                
+                with open(full_path, 'w') as file:
+                    file.write(optimized_code)
+                
+                result = subprocess.run(["pytest", full_path], capture_output=True, text=True)
+                if result.returncode == 0:
+                    repo.git.add(file_path)
+                    repo.git.commit('-m', f'Optimize {file_path}')
 
-    return 'Webhook received and processed successfully!', 200
+            if best_optimizations:
+                origin.push(review_branch)
+                create_pull_request(os.getenv('GITHUB_TOKEN'), data['repository']['full_name'], 'Automated Pull Request for Code Optimization', 'This pull request contains automated code optimizations.', review_branch, 'main')
+
+        return 'Webhook received and processed successfully!', 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 def optimize_code_with_ai(file_path):
     openai.api_key = os.getenv('OPENAI_API_KEY')
