@@ -19,7 +19,7 @@ def webhook():
             return jsonify({'msg': 'ping通ってよかったね'}), 200
 
         if event_type == 'push' or (event_type == 'status' and data['state'] == 'failure'):
-            commit_sha = data.get('sha', data.get('head_commit', {}).get('id', None))
+            commit_sha = data.get('sha', data.get('head_commit', {}).get('id'))
             if not commit_sha:
                 return jsonify({'error': "Missing 'sha' or 'head_commit.id' key in request data."}), 400
 
