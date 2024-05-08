@@ -19,9 +19,9 @@ def webhook():
             return jsonify({'msg': 'ping通ってよかったね'}), 200
 
         if event_type == 'push' or (event_type == 'status' and data['state'] == 'failure'):
-            commit_sha = data.get('sha', data.get('commit', {}).get('sha', None))
+            commit_sha = data.get('sha', data.get('head_commit', {}).get('id', None))
             if not commit_sha:
-                return jsonify({'error': "Missing 'sha' or 'commit.sha' key in request data."}), 400
+                return jsonify({'error': "Missing 'sha' or 'head_commit.id' key in request data."}), 400
 
             with tempfile.TemporaryDirectory(prefix='auto-ai-review-') as temp_dir:
                 repo = git.Repo.clone_from(data['repository']['clone_url'], temp_dir)
