@@ -191,7 +191,7 @@ def optimize_code_with_ai(file_path):
 
     for _ in range(4):
         response = client.chat.completions.create(
-            model="gpt-4-turbo",
+            model="gpt-4o",
             messages=messages,
             max_tokens=500,
             temperature=0.5
@@ -273,7 +273,7 @@ def again_optimize_code_with_ai(file_path):
 
     for _ in range(2):
         response = client.chat.completions.create(
-            model="gpt-4-turbo",
+            model="gpt-4o",
             messages=messages,
             max_tokens=500,
             temperature=0.5
